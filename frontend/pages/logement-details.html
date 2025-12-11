@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails du logement - LocaFrance</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .logement-detail {
+            padding: 40px 0;
+        }
+        .logement-gallery {
+            margin-bottom: 40px;
+        }
+        .logement-main-image {
+            width: 100%;
+            height: 500px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+        .logement-info-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+            margin-top: 40px;
+        }
+        .logement-details-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+        }
+        .logement-details-section h2 {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+        .amenities-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .amenity-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-light);
+        }
+        .amenity-item.available {
+            color: var(--success-color);
+        }
+        .booking-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-hover);
+            position: sticky;
+            top: 100px;
+            height: fit-content;
+        }
+        .booking-price {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        .booking-dates {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        /* Carte hôte */
+        .hote-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .hote-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .hote-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        /* Section transports */
+        .transport-search {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .transport-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .transport-results {
+            display: none;
+            margin-top: 20px;
+        }
+        .transport-link {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s;
+            border: 2px solid #e9ecef;
+        }
+        .transport-link:hover {
+            border-color: var(--primary-color);
+            transform: translateX(5px);
+        }
+        .transport-icon {
+            font-size: 2rem;
+        }
+        .transport-info h4 {
+            margin: 0 0 5px 0;
+            color: var(--primary-color);
+        }
+        .transport-info p {
+            margin: 0;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .logement-info-grid {
+                grid-template-columns: 1fr;
+            }
+            .booking-card {
+                position: relative;
+                top: 0;
+            }
+            .transport-form {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="/"><i class="fas fa-home"></i> LocaFrance</a>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="/" class="nav-link">Accueil</a>
+                <div class="nav-auth" id="navAuth">
+                    <button class="btn btn-outline" onclick="showLoginModal()">Connexion</button>
+                    <button class="btn btn-primary" onclick="showRegisterModal()">Inscription</button>
+                </div>
+                <div class="nav-user" id="navUser" style="display: none;">
+                    <button class="btn btn-outline" onclick="goToDashboard()">
+                        <i class="fas fa-user"></i> Mon compte
+                    </button>
+                    <button class="btn btn-outline" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Déconnexion
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Détails du logement -->
+    <section class="logement-detail">
+        <div class="container">
+            <div class="logement-gallery">
+                <img src="" alt="Logement" class="logement-main-image" id="mainImage">
+            </div>
+
+            <div class="logement-info-grid">
+                <div>
+                    <h1 id="logementTitre"></h1>
+                    <p style="color: var(--text-light); margin: 10px 0;">
+                        <i class="fas fa-map-marker-alt"></i> <span id="logementAdresse"></span>
+                    </p>
+                    <div style="display: flex; gap: 20px; margin: 20px 0;">
+                        <span><i class="fas fa-bed"></i> <span id="logementChambres"></span> chambres</span>
+                        <span><i class="fas fa-user"></i> <span id="logementCapacite"></span> personnes</span>
+                        <span><i class="fas fa-bath"></i> <span id="logementSdb"></span> salles de bain</span>
+                    </div>
+
+                    <!-- Carte Hôte -->
+                    <div class="logement-details-section">
+                        <h2>Votre hôte</h2>
+                        <div class="hote-card">
+                            <div class="hote-info">
+                                <div class="hote-avatar" id="hoteAvatar">H</div>
+                                <div>
+                                    <h3 style="margin: 0;" id="hoteNom">Chargement...</h3>
+                                    <p style="margin: 5px 0; color: var(--text-light);">
+                                        <i class="fas fa-star"></i> Hôte LocaFrance
+                                    </p>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline btn-block" onclick="contacterHote()" id="btnContactHote">
+                                <i class="fas fa-envelope"></i> Contacter l'hôte
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="logement-details-section">
+                        <h2>Description</h2>
+                        <p id="logementDescription"></p>
+                    </div>
+
+                    <div class="logement-details-section">
+                        <h2>Équipements</h2>
+                        <div class="amenities-grid" id="amenitiesGrid"></div>
+                    </div>
+
+                    <!-- Section Transports -->
+                    <div class="logement-details-section">
+                        <h2><i class="fas fa-train"></i> Comment s'y rendre ?</h2>
+                        <p style="color: var(--text-light); margin-bottom: 15px;">
+                            Recherchez les meilleures options de transport pour vous rendre à ce logement
+                        </p>
+                        
+                        <div class="transport-search">
+                            <div class="transport-form">
+                                <div class="form-group" style="margin: 0;">
+                                    <label>Ville de départ</label>
+                                    <input type="text" id="transportDepart" placeholder="Ex: Paris" list="villes-list">
+                                    <datalist id="villes-list">
+                                        <option value="Paris">
+                                        <option value="Lyon">
+                                        <option value="Marseille">
+                                        <option value="Toulouse">
+                                        <option value="Nice">
+                                        <option value="Nantes">
+                                        <option value="Strasbourg">
+                                        <option value="Bordeaux">
+                                        <option value="Lille">
+                                    </datalist>
+                                </div>
+                                
+                                <div class="form-group" style="margin: 0;">
+                                    <label>Date de départ</label>
+                                    <input type="date" id="transportDate">
+                                </div>
+                                
+                                <button onclick="rechercherTransports()" class="btn btn-primary" 
+                                        style="align-self: end; white-space: nowrap;">
+                                    <i class="fas fa-search"></i> Rechercher
+                                </button>
+                            </div>
+                            
+                            <div id="transportResults" class="transport-results"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="booking-card">
+                        <div class="booking-price">
+                            <span id="logementPrix"></span>€ <span style="font-size: 1rem; font-weight: normal; color: var(--text-light);">/ nuit</span>
+                        </div>
+
+                        <form id="bookingForm" onsubmit="reserverLogement(event)">
+                            <div class="booking-dates">
+                                <div class="form-group">
+                                    <label>Date d'arrivée</label>
+                                    <input type="date" 
+                                        id="dateDebut" 
+                                        required 
+                                        onkeydown="return false;" 
+                                        onpaste="return false;" 
+                                        ondrop="return false;"
+                                        onfocus="this.showPicker()">
+                                </div>
+                                <div class="form-group">
+                                    <label>Date de départ</label>
+                                    <input type="date" 
+                                        id="dateFin" 
+                                        required 
+                                        onkeydown="return false;" 
+                                        onpaste="return false;" 
+                                        ondrop="return false;"
+                                        onfocus="this.showPicker()">
+                                </div>
+                                <div class="form-group">
+                                    <label>Nombre de voyageurs</label>
+                                    <input type="number" id="nombreVoyageurs" min="1" required>
+                                </div>
+                            </div>
+
+                            <div class="form-error" id="bookingError"></div>
+
+                            <div style="border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span>Prix par nuit</span>
+                                    <span id="prixNuit"></span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span>Nombre de nuits</span>
+                                    <span id="nombreNuits">0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                                    <span>Total</span>
+                                    <span id="prixTotal">0€</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block" style="margin-top: 20px;">
+                                Réserver
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal de connexion -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('loginModal')">&times;</span>
+            <h2>Connexion</h2>
+            <form id="loginForm" onsubmit="login(event)">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    <input type="password" name="password" required>
+                </div>
+                <div class="form-error" id="loginError"></div>
+                <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/auth.js"></script>
+    <script>
+        let currentLogement = null;
+        let prixParNuit = 0;
+        let villeLogement = '';
+        let hoteId = null;
+
+        async function chargerLogement() {
+            const params = new URLSearchParams(window.location.search);
+            const logementId = params.get('id');
+
+            if (!logementId) {
+                showAlert('Logement non trouvé', 'error');
+                setTimeout(() => window.location.href = '/', 2000);
+                return;
+            }
+
+            try {
+                const logement = await LogementsAPI.getById(logementId);
+                currentLogement = logement;
+                prixParNuit = parseFloat(logement.prix_par_nuit);
+                villeLogement = logement.ville;
+                hoteId = logement.hote;
+
+                afficherLogement(logement);
+            } catch (error) {
+                showAlert('Erreur lors du chargement du logement', 'error');
+                console.error(error);
+            }
+        }
+
+        function afficherLogement(logement) {
+            // 🐛 DEBUG
+            console.log('🔍 Logement complet:', logement);
+            console.log('🔍 Hôte ID brut:', logement.hote);
+            console.log('🔍 Hôte nom:', logement.hote_nom);
+            
+            // Titre et localisation
+            document.getElementById('logementTitre').textContent = logement.titre;
+            document.getElementById('logementAdresse').textContent = `${logement.adresse}, ${logement.ville} ${logement.code_postal}`;
+            
+            // Caractéristiques
+            document.getElementById('logementChambres').textContent = logement.nombre_chambres;
+            document.getElementById('logementCapacite').textContent = logement.capacite_max;
+            document.getElementById('logementSdb').textContent = logement.nombre_salles_bain;
+            document.getElementById('logementDescription').textContent = logement.description;
+            document.getElementById('logementPrix').textContent = logement.prix_par_nuit;
+            document.getElementById('prixNuit').textContent = `${logement.prix_par_nuit}€`;
+            document.getElementById('nombreVoyageurs').max = logement.capacite_max;
+
+            // Photo avec gestion d'erreur
+            const mainImage = document.getElementById('mainImage');
+            const photoUrl = logement.photo_url || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800';
+            mainImage.src = photoUrl;
+            mainImage.alt = logement.titre;
+            mainImage.onerror = function() {
+                this.src = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800';
+            };
+
+            // Info hôte
+            const hoteNom = logement.hote_nom || 'Hôte';
+            document.getElementById('hoteNom').textContent = hoteNom;
+            document.getElementById('hoteAvatar').textContent = hoteNom.charAt(0).toUpperCase();
+
+            // Équipements
+            const amenities = [
+                { name: 'WiFi', available: logement.wifi, icon: 'wifi' },
+                { name: 'Parking', available: logement.parking, icon: 'parking' },
+                { name: 'Cuisine', available: logement.cuisine, icon: 'utensils' },
+                { name: 'Animaux', available: logement.animaux, icon: 'paw' }
+            ];
+
+            const amenitiesGrid = document.getElementById('amenitiesGrid');
+            amenitiesGrid.innerHTML = amenities.map(a => `
+                <div class="amenity-item ${a.available ? 'available' : ''}">
+                    <i class="fas fa-${a.icon}"></i>
+                    <span>${a.name} ${a.available ? '✓' : '✗'}</span>
+                </div>
+            `).join('');
+
+            // Dates minimum
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateDebut').min = today;
+            document.getElementById('dateFin').min = today;
+            document.getElementById('transportDate').min = today;
+        }
+
+        // Contacter l'hôte
+        function contacterHote() {
+            if (!isAuthenticated()) {
+                showAlert('Veuillez vous connecter pour contacter l\'hôte', 'error');
+                showLoginModal();
+                return;
+            }
+            
+            console.log('🔍 ID hôte:', hoteId);
+            
+            if (!hoteId || hoteId === 'undefined') {
+                showAlert('Impossible de contacter l\'hôte', 'error');
+                console.error('ID hôte invalide:', hoteId);
+                return;
+            }
+            
+            // Rediriger vers la messagerie avec l'ID de l'hôte
+            window.location.href = `/pages/messagerie.html?contact=${hoteId}`;
+        }
+
+        // Calculer le prix total
+        function calculerPrixTotal() {
+            const dateDebut = document.getElementById('dateDebut').value;
+            const dateFin = document.getElementById('dateFin').value;
+
+            if (dateDebut && dateFin) {
+                const debut = new Date(dateDebut);
+                const fin = new Date(dateFin);
+                const nuits = Math.ceil((fin - debut) / (1000 * 60 * 60 * 24));
+
+                if (nuits > 0) {
+                    document.getElementById('nombreNuits').textContent = nuits;
+                    document.getElementById('prixTotal').textContent = `${nuits * prixParNuit}€`;
+                }
+            }
+        }
+
+        document.getElementById('dateDebut').addEventListener('change', calculerPrixTotal);
+        document.getElementById('dateFin').addEventListener('change', calculerPrixTotal);
+
+        async function reserverLogement(event) {
+            event.preventDefault();
+
+            if (!isAuthenticated()) {
+                showAlert('Veuillez vous connecter pour réserver', 'error');
+                showLoginModal();
+                return;
+            }
+
+            const dateDebut = document.getElementById('dateDebut').value;
+            const dateFin = document.getElementById('dateFin').value;
+            const nombreVoyageurs = document.getElementById('nombreVoyageurs').value;
+
+            const debut = new Date(dateDebut);
+            const fin = new Date(dateFin);
+            const nuits = Math.ceil((fin - debut) / (1000 * 60 * 60 * 24));
+            const prixTotal = nuits * prixParNuit;
+
+            try {
+                await ReservationsAPI.create({
+                    logement_id: currentLogement.id,
+                    date_debut: dateDebut,
+                    date_fin: dateFin,
+                    nombre_voyageurs: parseInt(nombreVoyageurs),
+                    prix_total: prixTotal
+                });
+
+                showAlert('Réservation envoyée ! En attente de confirmation.', 'success');
+                setTimeout(() => {
+                    window.location.href = '/pages/client-dashboard.html';
+                }, 2000);
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        // 🚗 Rechercher les transports
+        async function rechercherTransports() {
+            const depart = document.getElementById('transportDepart').value;
+            const date = document.getElementById('transportDate').value;
+            
+            if (!depart) {
+                showAlert('Veuillez entrer une ville de départ', 'error');
+                return;
+            }
+
+            try {
+                const response = await TransportsAPI.rechercherTrajets(depart, villeLogement, date);
+                afficherTransports(response);
+            } catch (error) {
+                showAlert('Erreur lors de la recherche de transports', 'error');
+                console.error(error);
+            }
+        }
+
+        function afficherTransports(data) {
+            const resultsDiv = document.getElementById('transportResults');
+            resultsDiv.style.display = 'block';
+            
+            const liens = data.liens;
+            const transportIcons = {
+                googlemaps: '🗺️',
+                rome2rio: '🌍',
+                trainline: '🚄',
+                kiwi: '✈️',
+                blablacar: '🚗'
+            };
+            
+            resultsDiv.innerHTML = `
+                <h3 style="margin-bottom: 15px;">
+                    ${data.depart} → ${data.arrivee}
+                </h3>
+                ${Object.entries(liens).map(([key, transport]) => `
+                    <a href="${transport.url}" target="_blank" class="transport-link">
+                        <div class="transport-icon">${transportIcons[key]}</div>
+                        <div class="transport-info">
+                            <h4>${transport.nom}</h4>
+                            <p>${transport.description}</p>
+                            ${transport.note ? `<p><small>${transport.note}</small></p>` : ''}
+                        </div>
+                        <i class="fas fa-external-link-alt" style="margin-left: auto;"></i>
+                    </a>
+                `).join('')}
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            chargerLogement();
+        });
+    </script>
+</body>
+</html>

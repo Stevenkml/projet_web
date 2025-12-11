@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messagerie - LocaFrance</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .messagerie-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            padding: 40px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: 80vh;
+        }
+        .conversations-list {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-height: 700px;
+            overflow-y: auto;
+        }
+        .conversation-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
+        .conversation-item:hover {
+            background: #f7f7f7;
+        }
+        .conversation-item.active {
+            background: #e3f2fd;
+            border-left: 4px solid #007bff;
+        }
+        .conversation-item.non-lu {
+            background: #fff3cd;
+            font-weight: bold;
+        }
+        .chat-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 700px;
+        }
+        .chat-header {
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 15px;
+        }
+        .messages-zone {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .message.sent {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+            border-bottom-right-radius: 4px;
+        }
+        .message.received {
+            background: white;
+            border: 1px solid #ddd;
+            border-bottom-left-radius: 4px;
+        }
+        .message-meta {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        .message-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .message-form input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 14px;
+        }
+        .message-form input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        .message-form button {
+            padding: 12px 25px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+        }
+        .message-form button:hover {
+            background: #0056b3;
+        }
+        .no-conversation {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+        }
+        .no-conversation i {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+            .messagerie-container {
+                grid-template-columns: 1fr;
+            }
+            .conversations-list {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="container">
+        <div class="nav-brand">
+            <a href="/"><i class="fas fa-home"></i> LocaFrance</a>
+        </div>
+        
+        <div class="nav-menu" id="navMenu">
+            <a href="/" class="nav-link">Accueil</a>
+            <a href="/pages/messagerie.html" class="nav-link active"><i class="fas fa-envelope"></i> Messages</a>
+            <div class="nav-auth" id="navAuth">
+                <button class="btn btn-outline" onclick="showLoginModal()">Connexion</button>
+                <button class="btn btn-primary" onclick="showRegisterModal()">Inscription</button>
+            </div>
+            <div class="nav-user" id="navUser" style="display: none;">
+                <button class="btn btn-outline" onclick="goToDashboard()">
+                    <i class="fas fa-user"></i> Mon compte
+                </button>
+                <button class="btn btn-outline" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="messagerie-container">
+    <div class="conversations-list">
+        <h2><i class="fas fa-comments"></i> Conversations</h2>
+        <div id="conversationsList">
+            <p style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-header" id="chatHeader">
+            <div class="no-conversation">
+                <i class="fas fa-comments"></i>
+                <h3>Sélectionnez une conversation</h3>
+                <p>Choisissez un contact pour commencer à discuter</p>
+            </div>
+        </div>
+        <div class="messages-zone" id="messagesZone" style="display: none;"></div>
+        <form class="message-form" id="messageForm" onsubmit="envoyerMessage(event)" style="display: none;">
+            <input type="text" id="messageInput" placeholder="Écrivez votre message..." required autocomplete="off">
+            <button type="submit">
+                <i class="fas fa-paper-plane"></i>
+                <span>Envoyer</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script src="/static/js/auth.js"></script>
+<script>
+requireAuth();
+let currentConversationUserId = null;
+let autoRefresh = null;
+
+function goToDashboard() {
+    const user = getCurrentUser();
+    if (!user) return;
+    if (user.role === 'client') window.location.href = '/pages/client-dashboard.html';
+    else if (user.role === 'hote') window.location.href = '/pages/hote-dashboard.html';
+    else if (user.role === 'admin') window.location.href = '/pages/admin-dashboard.html';
+}
+
+async function chargerConversations() {
+    try {
+        const token = localStorage.getItem('token');
+        const container = document.getElementById('conversationsList');
+
+        if (!token) {
+            container.innerHTML = `<p style="color:#999; text-align:center; padding:20px;">Vous devez être connecté pour voir vos messages.</p>`;
+            return;
+        }
+
+        // ✅ Token Django au lieu de Bearer
+        const res = await fetch('http://localhost:8000/api/messages/mes-conversations/', {
+            headers: { 'Authorization': `Token ${token}` },
+            cache: 'no-store'
+        });
+
+        if (res.status === 401) {
+            container.innerHTML = `<p style="color:#999; text-align:center; padding:20px;">Votre session a expiré. Veuillez vous reconnecter.</p>`;
+            localStorage.removeItem('token');
+            return;
+        }
+
+        if (!res.ok) throw new Error('Erreur chargement');
+
+        const conversations = await res.json();
+
+        if (!conversations.length) {
+            container.innerHTML = `<p style="text-align:center; padding:20px; color:#999;">Aucune conversation pour le moment.</p>`;
+            return;
+        }
+
+        container.innerHTML = conversations.map(c => `
+            <div class="conversation-item ${c.non_lus > 0 ? 'non-lu' : ''} ${currentConversationUserId === c.user_id ? 'active' : ''}" 
+                 onclick="ouvrirConversation(${c.user_id}, '${c.prenom} ${c.nom}')">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="font-size:16px;">
+                        <i class="fas fa-user-circle" style="margin-right:8px;"></i>${c.prenom} ${c.nom}
+                    </strong>
+                    ${c.non_lus > 0 ? `<span class="badge" style="background:#dc3545; color:white; padding:3px 8px; border-radius:10px; font-size:11px;">${c.non_lus}</span>` : ''}
+                </div>
+                <p style="font-size:13px; color:#666; margin:5px 0 0 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    ${c.dernier_message ? c.dernier_message.substring(0, 40) + '...' : 'Pas de message'}
+                </p>
+                <small style="font-size:11px; color:#999;">
+                    ${c.role === 'hote' ? '🏠 Hôte' : c.role === 'client' ? '👤 Client' : '👑 Admin'}
+                </small>
+            </div>
+        `).join('');
+
+    } catch (e) {
+        console.error(e);
+        document.getElementById('conversationsList').innerHTML = `<p style="color:red; padding:20px;">Erreur de chargement des conversations.</p>`;
+    }
+}
+
+async function ouvrirConversation(userId, nom) {
+    currentConversationUserId = userId;
+    document.getElementById('chatHeader').innerHTML = `<h3><i class="fas fa-user-circle"></i> ${nom}</h3>`;
+    document.getElementById('messagesZone').style.display = 'block';
+    document.getElementById('messageForm').style.display = 'flex';
+    await chargerMessages();
+    await chargerConversations();
+    if (autoRefresh) clearInterval(autoRefresh);
+    autoRefresh = setInterval(chargerMessages, 3000);
+}
+
+async function chargerMessages() {
+    if (!currentConversationUserId) return;
+    try {
+        // ✅ Token Django
+        const res = await fetch(`http://localhost:8000/api/messages/conversation/${currentConversationUserId}/`, {
+            headers: { 'Authorization': `Token ${localStorage.getItem('token')}` },
+            cache: 'no-store'
+        });
+        if (!res.ok) throw new Error('Erreur');
+        const messages = await res.json();
+        const zone = document.getElementById('messagesZone');
+        const user = getCurrentUser();
+        if (!messages.length) zone.innerHTML = '<p style="text-align:center; color:#999; padding:40px;">Aucun message. Commencez la conversation !</p>';
+        else {
+            zone.innerHTML = messages.map(m => {
+                const sent = m.expediteur_id === user.id;
+                return `<div class="message ${sent ? 'sent' : 'received'}">
+                    <div>${m.contenu}</div>
+                    <div class="message-meta">${new Date(m.created_at).toLocaleString('fr-FR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}</div>
+                </div>`;
+            }).join('');
+        }
+        zone.scrollTop = zone.scrollHeight;
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+async function envoyerMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById('messageInput');
+    const contenu = input.value.trim();
+    if (!contenu) return;
+    try {
+        // ✅ Token Django
+        const res = await fetch('http://localhost:8000/api/messages/', {
+            method:'POST',
+            headers:{
+                'Content-Type':'application/json',
+                'Authorization': `Token ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ destinataire_id: currentConversationUserId, contenu }),
+            cache:'no-store'
+        });
+        if (!res.ok) throw new Error('Erreur envoi');
+        input.value = '';
+        await chargerMessages();
+    } catch(e) {
+        alert('Erreur lors de l\'envoi du message');
+        console.error(e);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // ✅ Vérifier si on doit ouvrir une conversation spécifique
+    const urlParams = new URLSearchParams(window.location.search);
+    const contactId = urlParams.get('contact');
+    
+    console.log('🔍 Paramètre contact dans URL:', contactId);
+    
+    if (contactId) {
+        // Charger les conversations et attendre
+        await chargerConversations();
+        
+        // Essayer d'ouvrir la conversation plusieurs fois
+        let tentatives = 0;
+        const maxTentatives = 3;
+        
+        const essayerOuvrirConversation = () => {
+            tentatives++;
+            console.log(`🔄 Tentative ${tentatives}/${maxTentatives} d'ouverture conversation ${contactId}`);
+            
+            // Chercher le nom de l'hôte dans les conversations chargées
+            const conversationElement = document.querySelector(`[onclick*="ouvrirConversation(${contactId}"]`);
+            
+            if (conversationElement) {
+                console.log('✅ Conversation trouvée, ouverture...');
+                conversationElement.click();
+            } else if (tentatives < maxTentatives) {
+                console.log('⏳ Conversation pas encore chargée, nouvelle tentative...');
+                setTimeout(essayerOuvrirConversation, 500);
+            } else {
+                console.log('ℹ️ Aucune conversation existante, création d\'une nouvelle...');
+                // Créer une nouvelle conversation
+                creerNouvelleConversation(parseInt(contactId));
+            }
+        };
+        
+        // Première tentative après 500ms
+        setTimeout(essayerOuvrirConversation, 500);
+    } else {
+        // Pas de contact spécifique, chargement normal
+        chargerConversations();
+    }
+    
+    setInterval(chargerConversations, 10000);
+});
+
+// ✅ Créer une nouvelle conversation
+async function creerNouvelleConversation(userId) {
+    console.log('💬 Création nouvelle conversation avec user ID:', userId);
+    
+    // Ouvrir l'interface de chat directement
+    currentConversationUserId = userId;
+    document.getElementById('chatHeader').innerHTML = `<h3><i class="fas fa-user-circle"></i> Nouvel échange</h3>`;
+    document.getElementById('messagesZone').style.display = 'block';
+    document.getElementById('messagesZone').innerHTML = '<p style="text-align:center; color:#999; padding:40px;">Aucun message. Commencez la conversation en envoyant votre premier message !</p>';
+    document.getElementById('messageForm').style.display = 'flex';
+    document.getElementById('messageInput').focus();
+    
+    showAlert('Écrivez votre premier message pour contacter l\'hôte', 'success');
+}
+
+window.addEventListener('beforeunload', () => { if (autoRefresh) clearInterval(autoRefresh); });
+</script>
+</body>
+</html>

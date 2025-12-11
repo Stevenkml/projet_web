@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espace Hôte - LocaFrance</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .dashboard { padding: 40px 0; background: var(--background-gray); min-height: 100vh; }
+        .dashboard-header { background: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+        .tabs { display: flex; gap: 20px; margin-bottom: 30px; border-bottom: 2px solid var(--border-color); }
+        .tab { padding: 15px 25px; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s; }
+        .tab.active { border-bottom-color: var(--primary-color); color: var(--primary-color); font-weight: 600; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .logements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .logement-card-hote { background: white; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+        .logement-card-hote img { width: 100%; height: 200px; object-fit: cover; }
+        .logement-card-hote .content { padding: 20px; }
+        .logement-actions { display: flex; gap: 10px; margin-top: 15px; }
+        .reservation-item { background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; }
+        .reservation-actions-hote { display: flex; gap: 10px; }
+        .modal-lg { max-width: 800px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand"><a href="/"><i class="fas fa-home"></i> LocaFrance</a></div>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Accueil</a>
+                <a href="messagerie.html" class="nav-link"><i class="fas fa-envelope"></i> Messages</a>
+                <button class="btn btn-outline" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Déconnexion</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard">
+        <div class="container">
+            <div class="dashboard-header">
+                <div>
+                    <h1>Espace Hôte</h1>
+                    <p style="color: var(--text-light);">Gérez vos logements et réservations</p>
+                </div>
+                <button class="btn btn-primary" onclick="ouvrirModalLogement()">
+                    <i class="fas fa-plus"></i> Nouveau logement
+                </button>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="changerTab('logements')">
+                    <i class="fas fa-home"></i> Mes Logements
+                </div>
+                <div class="tab" onclick="changerTab('reservations')">
+                    <i class="fas fa-calendar"></i> Réservations
+                </div>
+            </div>
+
+            <div id="tab-logements" class="tab-content active">
+                <div id="logementsContent">
+                    <div class="loading"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>
+                </div>
+            </div>
+
+            <div id="tab-reservations" class="tab-content">
+                <div id="reservationsContent">
+                    <div class="loading"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Logement -->
+    <div class="modal" id="logementModal">
+        <div class="modal-content modal-lg">
+            <span class="modal-close" onclick="closeModal('logementModal')">&times;</span>
+            <h2 id="logementModalTitle">Nouveau logement</h2>
+            <form id="logementForm" onsubmit="sauvegarderLogement(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Titre *</label>
+                        <input type="text" name="titre" required placeholder="Ex: Appartement lumineux centre-ville">
+                    </div>
+                    <div class="form-group">
+                        <label>Type *</label>
+                        <select name="type" required>
+                            <option value="">Sélectionnez</option>
+                            <option value="appartement">Appartement</option>
+                            <option value="maison">Maison</option>
+                            <option value="studio">Studio</option>
+                            <option value="villa">Villa</option>
+                            <option value="chambre">Chambre</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" rows="3" placeholder="Décrivez votre logement..."></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ville *</label>
+                        <input type="text" name="ville" required placeholder="Ex: Paris">
+                    </div>
+                    <div class="form-group">
+                        <label>Code postal *</label>
+                        <input type="text" name="code_postal" required placeholder="Ex: 75001">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Adresse *</label>
+                    <input type="text" name="adresse" required placeholder="Ex: 15 rue de Rivoli">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prix par nuit (€) *</label>
+                        <input type="number" name="prix_par_nuit" required min="1" placeholder="Ex: 80">
+                    </div>
+                    <div class="form-group">
+                        <label>Capacité max *</label>
+                        <input type="number" name="capacite_max" required min="1" placeholder="Ex: 4">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Chambres *</label>
+                        <input type="number" name="nombre_chambres" required min="0" placeholder="Ex: 2">
+                    </div>
+                    <div class="form-group">
+                        <label>Lits *</label>
+                        <input type="number" name="nombre_lits" required min="1" placeholder="Ex: 2">
+                    </div>
+                    <div class="form-group">
+                        <label>Salles de bain *</label>
+                        <input type="number" name="nombre_salles_bain" required min="1" placeholder="Ex: 1">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>URL de la photo</label>
+                    <input type="url" name="photo_url" placeholder="https://...">
+                </div>
+
+                <div class="form-group">
+                    <label>Équipements (séparés par des virgules)</label>
+                    <input type="text" name="equipements" placeholder="Ex: WiFi,Cuisine,TV,Climatisation">
+                </div>
+
+                <div class="form-error" id="logementError"></div>
+                <button type="submit" class="btn btn-primary btn-block">Enregistrer</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script>
+        requireAuth('hote');
+        let currentLogementId = null;
+
+        async function chargerDashboard() {
+            await Promise.all([chargerLogements(), chargerReservations()]);
+        }
+
+        function changerTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.closest('.tab').classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        async function chargerLogements() {
+            try {
+                const logements = await LogementsAPI.getMesLogements();
+                afficherLogements(logements);
+            } catch (error) {
+                document.getElementById('logementsContent').innerHTML = '<p>Erreur de chargement</p>';
+            }
+        }
+
+        function afficherLogements(logements) {
+            const container = document.getElementById('logementsContent');
+            
+            if (logements.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 40px;">Aucun logement. Créez votre première annonce !</p>';
+                return;
+            }
+
+            container.innerHTML = `<div class="logements-grid">${logements.map(l => `
+                <div class="logement-card-hote">
+                    <img src="${l.photo_url || 'https://via.placeholder.com/400x300'}" alt="${l.titre}" onerror="this.src='https://via.placeholder.com/400x300'">
+                    <div class="content">
+                        <h3>${l.titre}</h3>
+                        <p style="color: var(--text-light);"><i class="fas fa-map-marker-alt"></i> ${l.ville}</p>
+                        <p style="margin: 10px 0;"><strong>${l.prix_par_nuit}€</strong> / nuit</p>
+                        <p style="font-size: 14px; color: var(--text-light);">
+                            ${l.capacite_max} pers. • ${l.nombre_chambres} ch. • Note: ${l.note_moyenne ? parseFloat(l.note_moyenne).toFixed(1) : 'N/A'}
+                        </p>
+                        ${l.reservations_en_attente > 0 ? `<p style="color: var(--primary-color); font-weight: 600; margin-top: 10px;">
+                            <i class="fas fa-bell"></i> ${l.reservations_en_attente} réservation(s) en attente
+                        </p>` : ''}
+                        <div class="logement-actions">
+                            <button class="btn btn-outline" onclick="modifierLogement(${l.id})" style="flex: 1;">
+                                <i class="fas fa-edit"></i> Modifier
+                            </button>
+                            <button class="btn btn-outline" onclick="supprimerLogement(${l.id})" style="color: var(--primary-color);">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}</div>`;
+        }
+
+        async function chargerReservations() {
+            try {
+                const reservations = await ReservationsAPI.getMesReservationsHote();
+                afficherReservations(reservations);
+            } catch (error) {
+                document.getElementById('reservationsContent').innerHTML = '<p>Erreur de chargement</p>';
+            }
+        }
+
+        function afficherReservations(reservations) {
+            const container = document.getElementById('reservationsContent');
+            
+            if (reservations.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 40px;">Aucune réservation</p>';
+                return;
+            }
+
+            container.innerHTML = reservations.map(r => {
+                const statut = getStatutLabel(r.statut);
+                return `
+                    <div class="reservation-item">
+                        <div>
+                            <h3>${r.titre}</h3>
+                            <p><strong>${r.client_prenom} ${r.client_nom}</strong></p>
+                            <p style="color: var(--text-light);">Du ${formatDate(r.date_debut)} au ${formatDate(r.date_fin)}</p>
+                            <p>${r.nombre_voyageurs} voyageur(s) • ${r.prix_total}€</p>
+                            ${r.message_client ? `<p style="font-style: italic; margin-top: 10px;">"${r.message_client}"</p>` : ''}
+                            <span class="badge badge-${statut.class}">${statut.text}</span>
+                        </div>
+                        <div class="reservation-actions-hote">
+                            ${r.statut === 'en_attente' ? `
+                                <button class="btn btn-primary" onclick="accepterReservation(${r.id})">
+                                    <i class="fas fa-check"></i> Accepter
+                                </button>
+                                <button class="btn btn-outline" onclick="refuserReservation(${r.id})" style="color: var(--primary-color);">
+                                    <i class="fas fa-times"></i> Refuser
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function ouvrirModalLogement(logementId = null) {
+            currentLogementId = logementId;
+            const modal = document.getElementById('logementModal');
+            const form = document.getElementById('logementForm');
+            
+            form.reset();
+            document.getElementById('logementModalTitle').textContent = logementId ? 'Modifier le logement' : 'Nouveau logement';
+            
+            if (logementId) {
+                chargerLogementPourEdition(logementId);
+            }
+            
+            modal.classList.add('active');
+        }
+
+        async function chargerLogementPourEdition(id) {
+            try {
+                const logement = await LogementsAPI.getById(id);
+                const form = document.getElementById('logementForm');
+                
+                form.titre.value = logement.titre;
+                form.type.value = logement.type;
+                form.description.value = logement.description || '';
+                form.ville.value = logement.ville;
+                form.code_postal.value = logement.code_postal;
+                form.adresse.value = logement.adresse;
+                form.prix_par_nuit.value = logement.prix_par_nuit;
+                form.capacite_max.value = logement.capacite_max;
+                form.nombre_chambres.value = logement.nombre_chambres;
+                form.nombre_lits.value = logement.nombre_lits;
+                form.nombre_salles_bain.value = logement.nombre_salles_bain;
+                form.photo_url.value = logement.photo_url || '';
+                form.equipements.value = Array.isArray(logement.equipements) ? logement.equipements.join(',') : logement.equipements || '';
+            } catch (error) {
+                showAlert('Erreur lors du chargement', 'error');
+            }
+        }
+
+        async function sauvegarderLogement(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const logementData = {};
+            
+            for (let [key, value] of formData.entries()) {
+                if (value) logementData[key] = value;
+            }
+
+            try {
+                if (currentLogementId) {
+                    await LogementsAPI.update(currentLogementId, logementData);
+                    showAlert('Logement modifié !', 'success');
+                } else {
+                    await LogementsAPI.create(logementData);
+                    showAlert('Logement créé !', 'success');
+                }
+
+                closeModal('logementModal');
+                chargerLogements();
+            } catch (error) {
+                document.getElementById('logementError').textContent = error.message;
+                document.getElementById('logementError').classList.add('active');
+            }
+        }
+
+        async function modifierLogement(id) {
+            ouvrirModalLogement(id);
+        }
+
+        async function supprimerLogement(id) {
+            if (!confirm('Voulez-vous vraiment supprimer ce logement ?')) return;
+
+            try {
+                await LogementsAPI.delete(id);
+                showAlert('Logement supprimé', 'success');
+                chargerLogements();
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        async function accepterReservation(id) {
+            try {
+                await ReservationsAPI.accepter(id);
+                showAlert('Réservation acceptée !', 'success');
+                chargerReservations();
+                chargerLogements();
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        async function refuserReservation(id) {
+            if (!confirm('Voulez-vous vraiment refuser cette réservation ?')) return;
+
+            try {
+                await ReservationsAPI.refuser(id);
+                showAlert('Réservation refusée', 'info');
+                chargerReservations();
+            } catch (error) {
+                showAlert(error.message, 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', chargerDashboard);
+    </script>
+</body>
+</html>
